@@ -1,0 +1,1677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GRAMMAR FIGHT! – Conditionals Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rubik:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --neon-blue: #00f0ff;
+            --neon-pink: #ff007f;
+            --neon-yellow: #ffe600;
+            --neon-green: #39ff14;
+            --arcade-dark: #0a0a16;
+            --panel-bg: rgba(15, 15, 35, 0.9);
+        }
+
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: var(--arcade-dark);
+            color: #ffffff;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .font-orbitron {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Scanline Arcade Overlay */
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.25) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+            z-index: 40;
+        }
+
+        /* Glow effects */
+        .glow-blue { box-shadow: 0 0 15px var(--neon-blue); border-color: var(--neon-blue); }
+        .glow-pink { box-shadow: 0 0 15px var(--neon-pink); border-color: var(--neon-pink); }
+        .glow-yellow { box-shadow: 0 0 15px var(--neon-yellow); border-color: var(--neon-yellow); }
+
+        .text-glow-blue { text-shadow: 0 0 10px var(--neon-blue); }
+        .text-glow-pink { text-shadow: 0 0 10px var(--neon-pink); }
+        .text-glow-yellow { text-shadow: 0 0 10px var(--neon-yellow); }
+
+        .hp-bar-inner { transition: width 0.4s ease-out; }
+        .ult-bar-inner { transition: width 0.3s ease; }
+
+        @keyframes pulse-fast {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.85; }
+        }
+        .animate-pulse-fast { animation: pulse-fast 0.6s infinite; }
+
+        @keyframes shake {
+            0% { transform: translate(0, 0); }
+            20% { transform: translate(-8px, 5px); }
+            40% { transform: translate(8px, -5px); }
+            60% { transform: translate(-5px, 3px); }
+            80% { transform: translate(5px, -3px); }
+            100% { transform: translate(0, 0); }
+        }
+        .screen-shake { animation: shake 0.35s ease-in-out; }
+
+        /* Arcade Button Styles */
+        .arcade-btn {
+            background: linear-gradient(180deg, #2a2a4e 0%, #15152a 100%);
+            border: 2px solid #4a4a7d;
+            box-shadow: 0 4px 0 #0d0d1a, inset 0 2px 0 rgba(255,255,255,0.2);
+            transition: all 0.1s ease;
+        }
+
+        .arcade-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #0d0d1a, inset 0 2px 0 rgba(255,255,255,0.3);
+            border-color: var(--neon-blue);
+        }
+
+        .arcade-btn:active:not(:disabled) {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #0d0d1a, inset 0 1px 0 rgba(0,0,0,0.5);
+        }
+
+        .arcade-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            filter: grayscale(0.6);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0a0a16; }
+        ::-webkit-scrollbar-thumb { background: #2a2a50; border-radius: 4px; }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col justify-between relative bg-slate-950">
+
+    <div class="scanlines"></div>
+
+    <div id="game-container" class="w-full h-full flex flex-col justify-between relative overflow-hidden">
+
+        <!-- ========================================== -->
+        <!-- SCREEN 1: START MENU                       -->
+        <!-- ========================================== -->
+        <div id="screen-start" class="absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950 bg-opacity-95 p-4">
+            <div class="text-center max-w-2xl">
+                <div class="inline-block px-4 py-1 mb-2 bg-gradient-to-r from-cyan-500 to-pink-500 rounded-full text-xs font-bold tracking-widest uppercase text-black">
+                    Form 3 • CEFR A1 Grammar Arcade
+                </div>
+                <h1 class="text-5xl md:text-7xl font-black font-orbitron tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-yellow-300 drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)] mb-2">
+                    🥊 GRAMMAR FIGHT!
+                </h1>
+                <h2 class="text-2xl md:text-3xl font-orbitron text-yellow-400 font-bold mb-8 text-glow-yellow tracking-widest">
+                    CONDITIONALS EDITION
+                </h2>
+
+                <div class="flex flex-col gap-4 max-w-xs mx-auto">
+                    <button onclick="Game.goToCharSelect()" class="arcade-btn py-4 px-6 rounded-xl font-orbitron font-bold text-lg text-cyan-300 border-cyan-400 hover:text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-gamepad text-2xl"></i> START GAME
+                    </button>
+                    <button onclick="Game.showModal('modal-howtoplay')" class="arcade-btn py-3 px-6 rounded-xl font-orbitron font-bold text-md text-pink-300 border-pink-400 hover:text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-book-open"></i> HOW TO PLAY
+                    </button>
+                    <button onclick="Game.showModal('modal-tips')" class="arcade-btn py-3 px-6 rounded-xl font-orbitron font-bold text-md text-yellow-300 border-yellow-400 hover:text-white flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-lightbulb"></i> GRAMMAR TIPS
+                    </button>
+                    <button onclick="Game.showModal('modal-credits')" class="arcade-btn py-3 px-6 rounded-xl font-orbitron font-bold text-sm text-slate-300 border-slate-500 hover:text-white">
+                        <i class="fa-solid fa-circle-info"></i> CREDITS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 2: CHARACTER SELECTION              -->
+        <!-- ========================================== -->
+        <div id="screen-charselect" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-between bg-slate-950 p-6">
+            <h2 class="text-3xl md:text-5xl font-black font-orbitron text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-pink-500 tracking-wider">
+                CHOOSE YOUR FIGHTER
+            </h2>
+
+            <div class="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 my-auto">
+                <!-- Player 1 Selection -->
+                <div class="bg-slate-900/90 border-2 border-cyan-500/50 rounded-2xl p-6 flex flex-col items-center glow-blue">
+                    <div class="inline-block px-3 py-1 bg-cyan-500 text-black font-orbitron font-bold text-xs rounded mb-3">PLAYER 1 (LEFT)</div>
+                    <div id="p1-char-preview" class="w-32 h-32 flex items-center justify-center my-2"></div>
+                    <h3 id="p1-char-name" class="text-2xl font-bold font-orbitron text-cyan-400 mb-4">MARTIAL MASTER</h3>
+                    <div class="grid grid-cols-4 gap-2 w-full">
+                        <button onclick="Game.selectCharacter(1, 0)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-cyan-400 text-center font-orbitron text-xs">MARTIAL</button>
+                        <button onclick="Game.selectCharacter(1, 1)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-cyan-400 text-center font-orbitron text-xs">BOXER</button>
+                        <button onclick="Game.selectCharacter(1, 2)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-cyan-400 text-center font-orbitron text-xs">NINJA</button>
+                        <button onclick="Game.selectCharacter(1, 3)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-cyan-400 text-center font-orbitron text-xs">CYBORG</button>
+                    </div>
+                </div>
+
+                <!-- Player 2 Selection -->
+                <div class="bg-slate-900/90 border-2 border-pink-500/50 rounded-2xl p-6 flex flex-col items-center glow-pink">
+                    <div class="inline-block px-3 py-1 bg-pink-500 text-black font-orbitron font-bold text-xs rounded mb-3">PLAYER 2 (RIGHT)</div>
+                    <div id="p2-char-preview" class="w-32 h-32 flex items-center justify-center my-2"></div>
+                    <h3 id="p2-char-name" class="text-2xl font-bold font-orbitron text-pink-400 mb-4">CHAMPION BOXER</h3>
+                    <div class="grid grid-cols-4 gap-2 w-full">
+                        <button onclick="Game.selectCharacter(2, 0)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-pink-400 text-center font-orbitron text-xs">MARTIAL</button>
+                        <button onclick="Game.selectCharacter(2, 1)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-pink-400 text-center font-orbitron text-xs">BOXER</button>
+                        <button onclick="Game.selectCharacter(2, 2)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-pink-400 text-center font-orbitron text-xs">NINJA</button>
+                        <button onclick="Game.selectCharacter(2, 3)" class="p-2 border border-slate-700 bg-slate-800 rounded-lg hover:border-pink-400 text-center font-orbitron text-xs">CYBORG</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex gap-4">
+                <button onclick="Game.goToStartMenu()" class="arcade-btn py-3 px-8 rounded-xl font-orbitron font-bold text-slate-400 border-slate-600">
+                    BACK
+                </button>
+                <button onclick="Game.startBattle()" class="arcade-btn py-3 px-12 rounded-xl font-orbitron font-extrabold text-xl text-yellow-300 border-yellow-400 animate-pulse-fast">
+                    🥊 FIGHT!
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 3: BATTLE ARENA & HUD               -->
+        <!-- ========================================== -->
+        <div class="w-full bg-slate-950/90 border-b border-slate-800 p-2 md:p-4 z-10 flex flex-col gap-2">
+            <div class="flex justify-between items-center gap-2 md:gap-4 max-w-6xl mx-auto w-full">
+                <!-- P1 Health & Status -->
+                <div class="flex-1 flex flex-col gap-1">
+                    <div class="flex justify-between items-center font-orbitron font-bold text-xs md:text-sm">
+                        <span id="hud-p1-name" class="text-cyan-400">PLAYER 1</span>
+                        <span id="hud-p1-hp-text" class="text-white">100 HP</span>
+                    </div>
+                    <!-- HP Bar P1 -->
+                    <div class="w-full h-5 md:h-6 bg-slate-800 rounded-lg p-1 border border-cyan-500/50 relative overflow-hidden">
+                        <div id="hud-p1-hp-bar" class="hp-bar-inner h-full bg-gradient-to-r from-cyan-600 to-cyan-400 rounded-md w-full"></div>
+                    </div>
+                    <!-- P1 Ultimate Meter & Combo -->
+                    <div class="flex justify-between items-center mt-0.5">
+                        <div class="w-2/3 h-2 bg-slate-800 rounded border border-cyan-800 overflow-hidden">
+                            <div id="hud-p1-ult-bar" class="ult-bar-inner h-full bg-yellow-400 w-0"></div>
+                        </div>
+                        <span id="hud-p1-combo" class="font-orbitron text-xs font-bold text-yellow-400 hidden">0 HIT!</span>
+                    </div>
+                </div>
+
+                <!-- Timer & Pause -->
+                <div class="flex flex-col items-center justify-center px-2">
+                    <div class="w-12 h-12 md:w-16 md:h-16 rounded-full bg-slate-900 border-2 border-yellow-400 flex items-center justify-center flex-col glow-yellow">
+                        <span class="text-[9px] font-orbitron text-yellow-500">TIME</span>
+                        <span id="hud-timer" class="font-orbitron font-black text-xl md:text-2xl text-yellow-300 leading-none">25</span>
+                    </div>
+                    <button onclick="Game.togglePause()" class="mt-1 text-xs font-orbitron text-slate-400 hover:text-white">
+                        <i class="fa-solid fa-pause"></i> PAUSE
+                    </button>
+                </div>
+
+                <!-- P2 Health & Status -->
+                <div class="flex-1 flex flex-col gap-1">
+                    <div class="flex justify-between items-center font-orbitron font-bold text-xs md:text-sm">
+                        <span id="hud-p2-hp-text" class="text-white">100 HP</span>
+                        <span id="hud-p2-name" class="text-pink-400">PLAYER 2</span>
+                    </div>
+                    <!-- HP Bar P2 -->
+                    <div class="w-full h-5 md:h-6 bg-slate-800 rounded-lg p-1 border border-pink-500/50 relative overflow-hidden flex justify-end">
+                        <div id="hud-p2-hp-bar" class="hp-bar-inner h-full bg-gradient-to-r from-pink-400 to-pink-600 rounded-md w-full"></div>
+                    </div>
+                    <!-- P2 Ultimate Meter & Combo -->
+                    <div class="flex justify-between items-center mt-0.5">
+                        <span id="hud-p2-combo" class="font-orbitron text-xs font-bold text-yellow-400 hidden">0 HIT!</span>
+                        <div class="w-2/3 h-2 bg-slate-800 rounded border border-pink-800 overflow-hidden">
+                            <div id="hud-p2-ult-bar" class="ult-bar-inner h-full bg-yellow-400 w-0"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Turn Banner -->
+            <div id="hud-turn-banner" class="w-full text-center py-1 font-orbitron font-bold text-sm bg-cyan-950/80 border-y border-cyan-500/40 text-cyan-300">
+                PLAYER 1'S TURN TO ATTACK!
+            </div>
+        </div>
+
+        <!-- Fight Canvas Area -->
+        <div class="relative flex-1 w-full bg-slate-900 overflow-hidden flex items-center justify-center">
+            <canvas id="fight-canvas" class="w-full h-full block"></canvas>
+            
+            <!-- Floating Feedback Overlay Banner -->
+            <div id="combat-banner" class="hidden absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none text-center px-6 py-3 rounded-2xl bg-slate-950/90 border-2 border-yellow-400 shadow-2xl backdrop-blur">
+                <div id="combat-banner-title" class="font-orbitron font-black text-2xl md:text-3xl text-yellow-300 tracking-wider">
+                    CORRECT HIT!
+                </div>
+                <div id="combat-banner-badge" class="inline-block mt-1 px-3 py-0.5 rounded text-xs font-bold font-orbitron bg-emerald-500 text-black">
+                    🟢 ZERO CONDITIONAL
+                </div>
+                <div id="combat-banner-detail" class="text-sm font-semibold text-slate-200 mt-1">
+                    If + present simple, present simple
+                </div>
+            </div>
+        </div>
+
+        <!-- Question & Answer Controls -->
+        <div class="w-full bg-slate-950 border-t-2 border-slate-800 p-3 md:p-5 z-10 flex flex-col gap-3">
+            <div class="max-w-4xl mx-auto w-full flex flex-col gap-3">
+                <!-- Question Top Header -->
+                <div class="flex justify-between items-center gap-2">
+                    <!-- Grammar Type Badge -->
+                    <span id="q-badge" class="px-3 py-1 rounded-full font-orbitron font-bold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500 flex items-center gap-2">
+                        <span id="q-badge-dot">🟢</span> <span id="q-badge-text">ZERO CONDITIONAL</span>
+                    </span>
+
+                    <div class="flex items-center gap-2">
+                        <button onclick="Game.triggerSpeakingBonus()" class="text-xs font-orbitron font-bold px-3 py-1 bg-purple-500/20 text-purple-300 border border-purple-500 rounded-full hover:bg-purple-500/40 transition flex items-center gap-1">
+                            🎤 SAY IT!
+                        </button>
+                        <button onclick="Game.showModal('modal-tips')" class="text-xs font-orbitron font-bold px-3 py-1 bg-yellow-500/20 text-yellow-300 border border-yellow-500 rounded-full hover:bg-yellow-500/40 transition flex items-center gap-1">
+                            💡 GRAMMAR TIP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Question Text -->
+                <div id="q-text" class="text-base md:text-xl font-bold text-center text-white min-h-[48px] flex items-center justify-center px-4 bg-slate-900/80 rounded-xl border border-slate-800">
+                    If you exercise, you ______ healthier.
+                </div>
+
+                <!-- 4 Choices Buttons Grid -->
+                <div id="q-choices" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    <button onclick="Game.submitAnswer(0)" class="choice-btn arcade-btn py-3 px-4 rounded-xl text-left font-semibold text-sm md:text-base text-slate-200 hover:text-white flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-orbitron text-xs text-slate-400">A</span>
+                        <span class="choice-text">feel</span>
+                    </button>
+                    <button onclick="Game.submitAnswer(1)" class="choice-btn arcade-btn py-3 px-4 rounded-xl text-left font-semibold text-sm md:text-base text-slate-200 hover:text-white flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-orbitron text-xs text-slate-400">B</span>
+                        <span class="choice-text">will feel</span>
+                    </button>
+                    <button onclick="Game.submitAnswer(2)" class="choice-btn arcade-btn py-3 px-4 rounded-xl text-left font-semibold text-sm md:text-base text-slate-200 hover:text-white flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-orbitron text-xs text-slate-400">C</span>
+                        <span class="choice-text">would feel</span>
+                    </button>
+                    <button onclick="Game.submitAnswer(3)" class="choice-btn arcade-btn py-3 px-4 rounded-xl text-left font-semibold text-sm md:text-base text-slate-200 hover:text-white flex items-center gap-3">
+                        <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-600 flex items-center justify-center font-orbitron text-xs text-slate-400">D</span>
+                        <span class="choice-text">are feeling</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: PAUSE MENU                          -->
+        <!-- ========================================== -->
+        <div id="modal-pause" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-yellow-400 rounded-2xl p-6 w-full max-w-sm text-center glow-yellow">
+                <h3 class="text-3xl font-black font-orbitron text-yellow-400 mb-6">GAME PAUSED</h3>
+                <div class="flex flex-col gap-3">
+                    <button onclick="Game.togglePause()" class="arcade-btn py-3 rounded-xl font-orbitron font-bold text-cyan-300 border-cyan-400">RESUME</button>
+                    <button onclick="Game.restartBattle()" class="arcade-btn py-3 rounded-xl font-orbitron font-bold text-pink-300 border-pink-400">RESTART</button>
+                    <button onclick="Game.goToStartMenu()" class="arcade-btn py-3 rounded-xl font-orbitron font-bold text-slate-400 border-slate-600">MAIN MENU</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: GRAMMAR TIPS                        -->
+        <!-- ========================================== -->
+        <div id="modal-tips" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-cyan-400 rounded-2xl p-6 w-full max-w-2xl max-h-[85vh] overflow-y-auto glow-blue">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                    <h3 class="text-2xl font-black font-orbitron text-cyan-400 flex items-center gap-2">
+                        <i class="fa-solid fa-lightbulb text-yellow-400"></i> GRAMMAR REFERENCE
+                    </h3>
+                    <button onclick="Game.hideModal('modal-tips')" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+                </div>
+
+                <div class="flex flex-col gap-4 text-left">
+                    <!-- Zero Conditional Card -->
+                    <div class="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/50">
+                        <h4 class="font-orbitron font-bold text-emerald-400 text-lg flex items-center gap-2">
+                            🟢 ZERO CONDITIONAL
+                        </h4>
+                        <p class="text-xs text-slate-300 mb-2">Use for: <b>Facts, General Truths, Things always true</b></p>
+                        <div class="bg-slate-900 p-2.5 rounded-lg font-mono text-xs text-emerald-300 mb-2 border border-emerald-900">
+                            Structure: If + present simple ➔ present simple
+                        </div>
+                        <p class="text-sm italic text-slate-200">Example: "If you exercise, you <b>feel</b> healthier."</p>
+                    </div>
+
+                    <!-- First Conditional Card -->
+                    <div class="p-4 rounded-xl bg-amber-950/40 border border-amber-500/50">
+                        <h4 class="font-orbitron font-bold text-amber-400 text-lg flex items-center gap-2">
+                            🟡 FIRST CONDITIONAL
+                        </h4>
+                        <p class="text-xs text-slate-300 mb-2">Use for: <b>Real Future Possibilities</b></p>
+                        <div class="bg-slate-900 p-2.5 rounded-lg font-mono text-xs text-amber-300 mb-2 border border-amber-900">
+                            Structure: If + present simple ➔ will + verb
+                        </div>
+                        <p class="text-sm italic text-slate-200">Example: "If it rains, we <b>will stay</b> indoors."</p>
+                    </div>
+
+                    <!-- Second Conditional Card -->
+                    <div class="p-4 rounded-xl bg-rose-950/40 border border-rose-500/50">
+                        <h4 class="font-orbitron font-bold text-rose-400 text-lg flex items-center gap-2">
+                            🔴 SECOND CONDITIONAL
+                        </h4>
+                        <p class="text-xs text-slate-300 mb-2">Use for: <b>Imaginary Situations / Giving Advice</b></p>
+                        <div class="bg-slate-900 p-2.5 rounded-lg font-mono text-xs text-rose-300 mb-2 border border-rose-900">
+                            Structure: If + past simple ➔ would + verb
+                        </div>
+                        <p class="text-sm italic text-slate-200">Example: "If I were you, I <b>would join</b> the aerobics class."</p>
+                    </div>
+                </div>
+
+                <button onclick="Game.hideModal('modal-tips')" class="mt-6 w-full arcade-btn py-3 rounded-xl font-orbitron font-bold text-cyan-300 border-cyan-400">
+                    GOT IT! CLOSE TIP
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: HOW TO PLAY                         -->
+        <!-- ========================================== -->
+        <div id="modal-howtoplay" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-pink-400 rounded-2xl p-6 w-full max-w-md glow-pink">
+                <div class="flex justify-between items-center mb-4 border-b border-slate-800 pb-3">
+                    <h3 class="text-2xl font-black font-orbitron text-pink-400">HOW TO PLAY</h3>
+                    <button onclick="Game.hideModal('modal-howtoplay')" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
+                </div>
+                <ul class="text-left space-y-3 text-sm text-slate-200 font-medium">
+                    <li class="flex items-start gap-2">
+                        <span class="text-pink-400 font-bold font-orbitron">1.</span>
+                        <span><b>2 Players on 1 Screen:</b> Players take turns answering English conditional questions.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-pink-400 font-bold font-orbitron">2.</span>
+                        <span><b>Correct Answers Attack:</b> Answering correctly attacks the opponent, builds combos, and charges your <b>ULTIMATE METER</b>!</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-pink-400 font-bold font-orbitron">3.</span>
+                        <span><b>Wrong Answers / Timeout:</b> Missing an answer causes a failed strike and resets your combo streak.</span>
+                    </li>
+                    <li class="flex items-start gap-2">
+                        <span class="text-pink-400 font-bold font-orbitron">4.</span>
+                        <span><b>Ultimate Attack:</b> Fill your meter to 100% (5 correct answers) to launch a devastating 25 HP attack on your next correct turn!</span>
+                    </li>
+                </ul>
+                <button onclick="Game.hideModal('modal-howtoplay')" class="mt-6 w-full arcade-btn py-3 rounded-xl font-orbitron font-bold text-pink-300 border-pink-400">
+                    BACK TO MENU
+                </button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: CREDITS                             -->
+        <!-- ========================================== -->
+        <div id="modal-credits" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-slate-600 rounded-2xl p-6 w-full max-w-sm text-center">
+                <h3 class="text-2xl font-black font-orbitron text-slate-200 mb-2">CREDITS</h3>
+                <p class="text-xs text-slate-400 mb-4">Educational Arcade Game Engine</p>
+                <p class="text-sm text-slate-300 font-semibold mb-2">Designed for Form 3 ESL/EFL Students (CEFR A1)</p>
+                <p class="text-xs text-slate-400 mb-6">Built with HTML5 Canvas, Web Audio Synthesizer & Tailwind CSS.</p>
+                <button onclick="Game.hideModal('modal-credits')" class="w-full arcade-btn py-2.5 rounded-xl font-orbitron text-sm">CLOSE</button>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- MODAL: SPEAKING BONUS ("🎤 SAY IT!")        -->
+        <!-- ========================================== -->
+        <div id="modal-speaking" class="hidden absolute inset-0 z-40 bg-slate-950/90 backdrop-blur flex items-center justify-center p-4">
+            <div class="bg-slate-900 border-2 border-yellow-400 rounded-2xl p-6 w-full max-w-md text-center glow-yellow">
+                <div class="inline-block px-3 py-1 bg-yellow-400 text-black font-orbitron font-extrabold text-xs rounded mb-3">
+                    🎤 SPEAKING BONUS ROUND
+                </div>
+                <h3 class="text-2xl font-black font-orbitron text-white mb-2">SAY IT OUT LOUD!</h3>
+                <p id="speaking-prompt" class="text-lg font-bold text-yellow-300 mb-4">
+                    "What happens if you don't sleep enough?"
+                </p>
+                <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 text-xs text-slate-300 mb-4 italic">
+                    Expected answer format:<br>
+                    <span id="speaking-expected" class="text-cyan-300 font-semibold">"If I don't sleep enough, I feel tired."</span>
+                </div>
+                <div class="flex gap-3">
+                    <button onclick="Game.resolveSpeakingBonus(false)" class="flex-1 arcade-btn py-3 rounded-xl font-orbitron text-slate-400 border-slate-600">
+                        SKIP
+                    </button>
+                    <button onclick="Game.resolveSpeakingBonus(true)" class="flex-1 arcade-btn py-3 rounded-xl font-orbitron font-bold text-yellow-300 border-yellow-400">
+                        ⭐ AWARD +1 BONUS
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SCREEN 4: VICTORY & RESULTS SCREEN         -->
+        <!-- ========================================== -->
+        <div id="screen-victory" class="hidden absolute inset-0 z-30 flex flex-col items-center justify-center bg-slate-950/95 p-4 overflow-y-auto">
+            <div class="w-full max-w-3xl bg-slate-900 border-2 border-yellow-400 rounded-2xl p-6 text-center shadow-2xl glow-yellow my-auto relative overflow-hidden">
+                <canvas id="victory-confetti" class="absolute inset-0 pointer-events-none w-full h-full z-0"></canvas>
+                
+                <div class="relative z-10">
+                    <div id="ko-title" class="text-5xl md:text-7xl font-black font-orbitron text-red-500 tracking-widest animate-pulse-fast drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] mb-1">
+                        K.O.!
+                    </div>
+                    
+                    <div id="perfect-banner" class="hidden inline-block px-4 py-1 bg-gradient-to-r from-yellow-400 to-amber-500 text-black font-orbitron font-black text-sm rounded-full mb-2">
+                        🏆 PERFECT ROUND! 🏆
+                    </div>
+
+                    <h2 id="winner-name" class="text-3xl md:text-4xl font-black font-orbitron text-yellow-300 mb-4">
+                        PLAYER 1 WINS!
+                    </h2>
+
+                    <!-- Battle Statistics Table -->
+                    <div class="bg-slate-950/80 rounded-xl p-4 border border-slate-800 mb-6 overflow-x-auto">
+                        <h3 class="text-xs font-orbitron text-slate-400 uppercase tracking-widest mb-3">BATTLE STATISTICS</h3>
+                        <table class="w-full text-xs md:text-sm font-orbitron text-slate-200">
+                            <thead>
+                                <tr class="border-b border-slate-800 text-slate-400">
+                                    <th class="p-2 text-left">STATISTIC</th>
+                                    <th class="p-2 text-center text-cyan-400">PLAYER 1</th>
+                                    <th class="p-2 text-center text-pink-400">PLAYER 2</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-800/50">
+                                <tr>
+                                    <td class="p-2 text-left font-sans text-slate-300">Correct Answers</td>
+                                    <td id="stat-p1-correct" class="p-2">0</td>
+                                    <td id="stat-p2-correct" class="p-2">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans text-slate-300">Wrong Answers</td>
+                                    <td id="stat-p1-wrong" class="p-2">0</td>
+                                    <td id="stat-p2-wrong" class="p-2">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans text-slate-300">Highest Combo</td>
+                                    <td id="stat-p1-combo" class="p-2">0</td>
+                                    <td id="stat-p2-combo" class="p-2">0</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans text-slate-300">Damage Dealt</td>
+                                    <td id="stat-p1-damage" class="p-2">0 HP</td>
+                                    <td id="stat-p2-damage" class="p-2">0 HP</td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 text-left font-sans text-slate-300">Ultimate Attacks</td>
+                                    <td id="stat-p1-ult" class="p-2">0</td>
+                                    <td id="stat-p2-ult" class="p-2">0</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <!-- Grammar Breakdown -->
+                        <div class="mt-4 pt-3 border-t border-slate-800 grid grid-cols-3 gap-2 text-center font-orbitron text-xs">
+                            <div class="p-2 rounded bg-emerald-950/30 border border-emerald-800">
+                                <span class="block text-emerald-400">🟢 ZERO</span>
+                                <span id="stat-zero-score" class="font-bold text-white">0 / 8</span>
+                            </div>
+                            <div class="p-2 rounded bg-amber-950/30 border border-amber-800">
+                                <span class="block text-amber-400">🟡 FIRST</span>
+                                <span id="stat-first-score" class="font-bold text-white">0 / 9</span>
+                            </div>
+                            <div class="p-2 rounded bg-rose-950/30 border border-rose-800">
+                                <span class="block text-rose-400">🔴 SECOND</span>
+                                <span id="stat-second-score" class="font-bold text-white">0 / 8</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="final-message" class="text-lg font-orbitron font-bold text-cyan-400 mb-6">
+                        EXCELLENT GRAMMAR SKILLS!
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex flex-wrap justify-center gap-3">
+                        <button onclick="Game.restartBattle()" class="arcade-btn py-3 px-6 rounded-xl font-orbitron font-bold text-yellow-300 border-yellow-400">
+                            PLAY AGAIN
+                        </button>
+                        <button onclick="Game.goToCharSelect()" class="arcade-btn py-3 px-6 rounded-xl font-orbitron font-bold text-cyan-300 border-cyan-400">
+                            CHARACTER SELECT
+                        </button>
+                        <button onclick="Game.goToStartMenu()" class="arcade-btn py-3 px-6 rounded-xl font-orbitron font-bold text-slate-400 border-slate-600">
+                            MAIN MENU
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- JAVASCRIPT GAME ENGINE CODE                -->
+    <!-- ========================================== -->
+    <script>
+        const SoundFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+            },
+            playClick() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.05);
+            },
+            playHit() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.2);
+            },
+            playWrong() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(100, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.3);
+            },
+            playUltimate() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.5);
+            },
+            playKO() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(300, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(60, this.ctx.currentTime + 0.8);
+                gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.8);
+                osc.connect(gain); gain.connect(this.ctx.destination);
+                osc.start(); osc.stop(this.ctx.currentTime + 0.8);
+            }
+        };
+
+        const QUESTIONS_DATA = [
+            // Zero Conditional (1 - 8)
+            { id: 1, type: 'zero', question: "If you exercise, you ______ healthier.", answer: "feel", choices: ["feel", "will feel", "would feel", "are feeling"] },
+            { id: 2, type: 'zero', question: "If people don't sleep enough, they ______ tired.", answer: "feel", choices: ["feel", "will feel", "would feel", "are"] },
+            { id: 3, type: 'zero', question: "If you eat too much junk food, you ______ weight.", answer: "gain", choices: ["gain", "will gain", "would gain", "gaining"] },
+            { id: 4, type: 'zero', question: "If you heat ice, it ______.", answer: "melts", choices: ["melts", "will melt", "would melt", "melting"] },
+            { id: 5, type: 'zero', question: "If you don't drink water, you ______ thirsty.", answer: "get", choices: ["get", "will get", "would get", "getting"] },
+            { id: 6, type: 'zero', question: "Which sentence is a Zero Conditional?", answer: "If you exercise, you feel healthier.", choices: ["If it rains, we will stay home.", "If you exercise, you feel healthier.", "If I had time, I would exercise.", "If she studies, she will pass."] },
+            { id: 7, type: 'zero', question: "If you eat healthy food, you ______ healthy.", answer: "stay", choices: ["stay", "will stay", "would stay", "staying"] },
+            { id: 8, type: 'zero', question: "If people exercise regularly, they ______ stronger.", answer: "become", choices: ["become", "will become", "would become", "becoming"] },
+            // First Conditional (9 - 17)
+            { id: 9, type: 'first', question: "If it rains, we ______ stay indoors.", answer: "will", choices: ["will", "would", "are", "were"] },
+            { id: 10, type: 'first', question: "If you train hard, you ______ improve.", answer: "will", choices: ["would", "will", "are", "were"] },
+            { id: 11, type: 'first', question: "If she joins the team, she ______ make new friends.", answer: "will", choices: ["will", "would", "is", "was"] },
+            { id: 12, type: 'first', question: "If I study hard, I ______ pass the test.", answer: "will", choices: ["would", "will", "am", "was"] },
+            { id: 13, type: 'first', question: "If we finish early, we ______ play football.", answer: "will", choices: ["will", "would", "are", "were"] },
+            { id: 14, type: 'first', question: "Which sentence is a First Conditional?", answer: "If it rains, we will stay indoors.", choices: ["If you exercise, you feel healthier.", "If it rains, we will stay indoors.", "If I had time, I would exercise.", "If people eat well, they feel better."] },
+            { id: 15, type: 'first', question: "If I have time, I ______ help you.", answer: "will", choices: ["will", "would", "am", "was"] },
+            { id: 16, type: 'first', question: "If Ali trains every day, he ______ improve.", answer: "will", choices: ["will", "would", "is", "was"] },
+            { id: 17, type: 'first', question: "If we don't hurry, we ______ miss the bus.", answer: "will", choices: ["will", "would", "are", "were"] },
+            // Second Conditional (18 - 25)
+            { id: 18, type: 'second', question: "If I were you, I ______ join the aerobics class.", answer: "would", choices: ["will", "would", "am", "can"] },
+            { id: 19, type: 'second', question: "If I had more time, I ______ exercise every day.", answer: "would", choices: ["will", "would", "am", "can"] },
+            { id: 20, type: 'second', question: "If she weren't shy, she ______ play football.", answer: "would", choices: ["will", "would", "is", "can"] },
+            { id: 21, type: 'second', question: "If I were rich, I ______ buy a big house.", answer: "would", choices: ["will", "would", "am", "can"] },
+            { id: 22, type: 'second', question: "If I had a bicycle, I ______ ride it to school.", answer: "would", choices: ["would", "will", "am", "can"] },
+            { id: 23, type: 'second', question: "Which sentence is a Second Conditional?", answer: "If I had time, I would exercise every day.", choices: ["If you exercise, you feel healthier.", "If it rains, we will stay indoors.", "If I had time, I would exercise every day.", "If she trains hard, she will improve."] },
+            { id: 24, type: 'second', question: "If I were you, I ______ eat more healthy food.", answer: "would", choices: ["would", "will", "am", "can"] },
+            { id: 25, type: 'second', question: "If I had more free time, I ______ play sports.", answer: "would", choices: ["would", "will", "am", "can"] }
+        ];
+
+        const CHARACTERS = [
+            { id: 'karate', name: "MARTIAL MASTER", color: "#ffffff", accent: "#ef4444", aura: "#00f0ff", head: "#ffdbac", icon: "🥋" },
+            { id: 'boxer', name: "CHAMPION BOXER", color: "#dc2626", accent: "#fbbf24", aura: "#ff007f", head: "#e0ac69", icon: "🥊" },
+            { id: 'ninja', name: "SHADOW NINJA", color: "#312e81", accent: "#8b5cf6", aura: "#39ff14", head: "#1e1b4b", icon: "🥷" },
+            { id: 'cyborg', name: "CYBER BOT", color: "#64748b", accent: "#06b6d4", aura: "#ffe600", head: "#475569", icon: "🤖" }
+        ];
+
+        const CanvasEngine = {
+            canvas: null,
+            ctx: null,
+            p1State: { action: 'idle', frame: 0, hitStartTime: 0, isUltimate: false },
+            p2State: { action: 'idle', frame: 0, hitStartTime: 0, isUltimate: false },
+            particles: [],
+            effects: [],
+            damagePops: [],
+            animId: null,
+
+            init() {
+                this.canvas = document.getElementById('fight-canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resize();
+                window.addEventListener('resize', () => this.resize());
+                this.loop();
+            },
+
+            resize() {
+                if (!this.canvas) return;
+                const rect = this.canvas.parentElement.getBoundingClientRect();
+                this.canvas.width = rect.width;
+                this.canvas.height = rect.height;
+            },
+
+            triggerAttack(attacker, isUltimate = false) {
+                const targetState = attacker === 1 ? this.p1State : this.p2State;
+                const defenderState = attacker === 1 ? this.p2State : this.p1State;
+
+                targetState.action = isUltimate ? 'ultimate' : (Math.random() > 0.5 ? 'punch' : 'kick');
+                targetState.frame = 0;
+
+                setTimeout(() => {
+                    defenderState.action = 'hit';
+                    defenderState.frame = 0;
+                    defenderState.hitStartTime = Date.now();
+                    defenderState.isUltimate = isUltimate;
+
+                    const impactX = attacker === 1 ? this.canvas.width * 0.62 : this.canvas.width * 0.38;
+                    const impactY = this.canvas.height * 0.5;
+
+                    this.spawnHitSparks(impactX, impactY, isUltimate);
+                    this.spawnImpactShockwave(impactX, impactY, isUltimate);
+                    this.spawnDamagePop(impactX, impactY - 40, isUltimate ? "-25 HP!" : "-10 HP", isUltimate);
+                }, 200);
+
+                setTimeout(() => {
+                    targetState.action = 'idle';
+                    defenderState.action = 'idle';
+                }, 850);
+            },
+
+            triggerMiss(player) {
+                const state = player === 1 ? this.p1State : this.p2State;
+                state.action = 'miss';
+                state.frame = 0;
+                setTimeout(() => { state.action = 'idle'; }, 600);
+            },
+
+            spawnHitSparks(x, y, isUltimate) {
+                const count = isUltimate ? 45 : 25;
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = (Math.random() * 9 + 4) * (isUltimate ? 2.0 : 1.2);
+                    this.particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 2,
+                        size: Math.random() * 7 + 3,
+                        color: isUltimate ? '#ffe600' : (Math.random() > 0.5 ? '#ff0055' : '#00f0ff'),
+                        life: 1.0
+                    });
+                }
+            },
+
+            spawnImpactShockwave(x, y, isUltimate) {
+                this.effects.push({
+                    x, y,
+                    radius: 10,
+                    maxRadius: isUltimate ? 80 : 45,
+                    color: isUltimate ? '#ffe600' : '#ff0055',
+                    lineWidth: isUltimate ? 6 : 4,
+                    life: 1.0
+                });
+            },
+
+            spawnDamagePop(x, y, text, isUltimate) {
+                this.damagePops.push({
+                    x: x + (Math.random() * 20 - 10),
+                    y,
+                    text,
+                    isUltimate,
+                    vy: -2.5,
+                    life: 1.0,
+                    scale: isUltimate ? 1.5 : 1.0
+                });
+            },
+
+            drawFighter(x, y, charData, facingRight, state) {
+                const ctx = this.ctx;
+                ctx.save();
+
+                const t = Date.now() * 0.005;
+                let bobY = Math.sin(t) * 4;
+                let punchOffsetX = 0;
+                let kickAngle = 0;
+
+                // Hit Animation Math (Recoil, Rotational Tilt, Vibration)
+                let recoilX = 0;
+                let recoilY = 0;
+                let tiltAngle = 0;
+                let isHitState = state.action === 'hit';
+                let hitProgress = 0;
+
+                if (isHitState && state.hitStartTime) {
+                    const hitElapsed = Date.now() - state.hitStartTime;
+                    hitProgress = Math.min(1.0, hitElapsed / 600);
+                    // Elastic knockback curve
+                    const knockbackFactor = Math.sin(hitProgress * Math.PI);
+                    recoilX = -knockbackFactor * (state.isUltimate ? 50 : 32);
+                    recoilY = -knockbackFactor * (state.isUltimate ? 18 : 10);
+                    tiltAngle = -knockbackFactor * (state.isUltimate ? 0.45 : 0.3);
+
+                    // High frequency shake jitter on impact
+                    if (hitProgress < 0.4) {
+                        recoilX += (Math.random() * 8 - 4);
+                        recoilY += (Math.random() * 8 - 4);
+                    }
+                }
+
+                if (state.action === 'punch') {
+                    punchOffsetX = 35;
+                } else if (state.action === 'kick') {
+                    kickAngle = 0.6;
+                } else if (state.action === 'ultimate') {
+                    punchOffsetX = 55;
+                    bobY = -15;
+                } else if (state.action === 'miss') {
+                    punchOffsetX = -10;
+                    bobY = 5;
+                }
+
+                // Apply Fighter Position & Tilt
+                ctx.translate(x + (facingRight ? recoilX : -recoilX), y + recoilY);
+                if (!facingRight) ctx.scale(-1, 1);
+                ctx.rotate(tiltAngle);
+
+                // Shadow
+                ctx.beginPath();
+                ctx.ellipse(0, 70, 45, 10, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0,0,0,0.4)';
+                ctx.fill();
+
+                // Hit Flash Glow Aura
+                ctx.beginPath();
+                ctx.arc(0, 0 + bobY, 60, 0, Math.PI * 2);
+                if (isHitState && hitProgress < 0.35) {
+                    ctx.fillStyle = state.isUltimate ? 'rgba(255, 230, 0, 0.65)' : 'rgba(255, 0, 85, 0.55)';
+                } else {
+                    ctx.fillStyle = charData.aura + '22';
+                }
+                ctx.fill();
+
+                // Render Classic Fighter Archetypes
+                if (charData.id === 'karate') {
+                    // Classic Karateka (Karate Gi, Headband, Black Belt)
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(-15, 25 + bobY, 12, 35);
+                    ctx.fillRect(5, 25 + bobY, 12, 35);
+
+                    ctx.fillStyle = '#e2e8f0';
+                    ctx.fillRect(-16, 58 + bobY, 14, 10);
+                    ctx.fillRect(4, 58 + bobY, 14, 10);
+
+                    // Karate Gi Top
+                    ctx.fillStyle = isHitState && hitProgress < 0.25 ? '#ff4d4d' : '#ffffff';
+                    ctx.beginPath();
+                    ctx.roundRect(-20, -25 + bobY, 40, 50, 6);
+                    ctx.fill();
+                    ctx.strokeStyle = '#cbd5e1';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // V-Neck Lapel & Chest
+                    ctx.fillStyle = '#ffdbac';
+                    ctx.beginPath();
+                    ctx.moveTo(-10, -25 + bobY);
+                    ctx.lineTo(0, -5 + bobY);
+                    ctx.lineTo(10, -25 + bobY);
+                    ctx.fill();
+
+                    // Black Belt & Tails
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(-22, 18 + bobY, 44, 8);
+                    ctx.beginPath();
+                    ctx.moveTo(0, 22 + bobY);
+                    ctx.lineTo(8, 45 + bobY);
+                    ctx.lineTo(14, 43 + bobY);
+                    ctx.lineTo(5, 22 + bobY);
+                    ctx.fill();
+
+                    // Head
+                    ctx.fillStyle = isHitState && hitProgress < 0.3 ? '#ff8080' : charData.head;
+                    ctx.beginPath();
+                    ctx.arc(0, -45 + bobY, 20, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Hair (Spiky Dark Hair)
+                    ctx.fillStyle = '#1e293b';
+                    ctx.beginPath();
+                    ctx.arc(0, -52 + bobY, 20, Math.PI, Math.PI * 2);
+                    ctx.fill();
+
+                    // Classic Red Headband with Flowing Tails
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(-22, -54 + bobY, 44, 7);
+                    ctx.beginPath();
+                    ctx.moveTo(-20, -50 + bobY);
+                    ctx.lineTo(-35 + Math.sin(t*2)*5, -45 + bobY);
+                    ctx.lineTo(-38 + Math.sin(t*2)*5, -40 + bobY);
+                    ctx.lineTo(-20, -46 + bobY);
+                    ctx.fill();
+
+                    // Eyes - Pain Expression when hit!
+                    if (isHitState) {
+                        ctx.strokeStyle = '#0f172a';
+                        ctx.lineWidth = 3;
+                        // Eye 1 X
+                        ctx.beginPath(); ctx.moveTo(2, -50 + bobY); ctx.lineTo(8, -44 + bobY); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(8, -50 + bobY); ctx.lineTo(2, -44 + bobY); ctx.stroke();
+                        // Eye 2 X
+                        ctx.beginPath(); ctx.moveTo(10, -50 + bobY); ctx.lineTo(16, -44 + bobY); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(16, -50 + bobY); ctx.lineTo(10, -44 + bobY); ctx.stroke();
+                    } else {
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(4, -48 + bobY, 10, 4);
+                    }
+
+                    // Red Hand Wraps / Fists
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(-15, -10 + bobY, 11, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(20 + punchOffsetX, -15 + bobY, 13, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else if (charData.id === 'boxer') {
+                    // Classic Boxer (Trunks, Gold Belt, Red Gloves, Boots)
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fillRect(-22, 15 + bobY, 44, 25);
+                    ctx.fillStyle = '#fbbf24'; // Champion Belt
+                    ctx.fillRect(-22, 15 + bobY, 44, 6);
+
+                    // Legs & High Boots
+                    ctx.fillStyle = '#e0ac69';
+                    ctx.fillRect(-14, 38 + bobY, 11, 20);
+                    ctx.fillRect(4, 38 + bobY, 11, 20);
+                    ctx.fillStyle = '#1e293b';
+                    ctx.fillRect(-15, 52 + bobY, 13, 16);
+                    ctx.fillRect(3, 52 + bobY, 13, 16);
+
+                    // Muscular Torso & Tank Straps
+                    ctx.fillStyle = isHitState && hitProgress < 0.25 ? '#ff6666' : '#e0ac69';
+                    ctx.beginPath();
+                    ctx.roundRect(-20, -25 + bobY, 40, 42, 8);
+                    ctx.fill();
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fillRect(-18, -25 + bobY, 10, 18);
+                    ctx.fillRect(8, -25 + bobY, 10, 18);
+
+                    // Head & Cut Hair
+                    ctx.fillStyle = isHitState && hitProgress < 0.3 ? '#ff8080' : charData.head;
+                    ctx.beginPath();
+                    ctx.arc(0, -45 + bobY, 21, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#451a03';
+                    ctx.beginPath();
+                    ctx.arc(0, -51 + bobY, 21, Math.PI * 1.1, Math.PI * 1.9);
+                    ctx.fill();
+
+                    // Eyes & Mouth - Pain Expression when hit!
+                    if (isHitState) {
+                        ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 3;
+                        ctx.beginPath(); ctx.moveTo(4, -50 + bobY); ctx.lineTo(12, -44 + bobY); ctx.stroke();
+                        ctx.beginPath(); ctx.moveTo(12, -50 + bobY); ctx.lineTo(4, -44 + bobY); ctx.stroke();
+                        ctx.fillStyle = '#ef4444';
+                        ctx.beginPath(); ctx.arc(8, -38 + bobY, 4, 0, Math.PI * 2); ctx.fill();
+                    } else {
+                        ctx.fillStyle = '#0f172a';
+                        ctx.fillRect(5, -48 + bobY, 8, 4);
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(6, -39 + bobY, 8, 3);
+                    }
+
+                    // Heavy Boxing Gloves
+                    ctx.fillStyle = '#ef4444';
+                    ctx.beginPath();
+                    ctx.arc(-16, -8 + bobY, 14, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(22 + punchOffsetX, -12 + bobY, 17, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                } else if (charData.id === 'ninja') {
+                    // Classic Shadow Ninja (Cowl Mask, Glowing Eyes, Purple Sash)
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.fillRect(-15, 25 + bobY, 12, 35);
+                    ctx.fillRect(5, 25 + bobY, 12, 35);
+                    ctx.fillStyle = '#6366f1';
+                    ctx.fillRect(-15, 42 + bobY, 12, 18);
+                    ctx.fillRect(5, 42 + bobY, 12, 18);
+
+                    // Ninja Tunic
+                    ctx.fillStyle = isHitState && hitProgress < 0.25 ? '#818cf8' : '#312e81';
+                    ctx.beginPath();
+                    ctx.roundRect(-20, -25 + bobY, 40, 50, 8);
+                    ctx.fill();
+
+                    // Purple Sash & Flowing Tail
+                    ctx.fillStyle = '#8b5cf6';
+                    ctx.fillRect(-22, 15 + bobY, 44, 8);
+                    ctx.beginPath();
+                    ctx.moveTo(-18, 20 + bobY);
+                    ctx.lineTo(-28 + Math.sin(t*3)*4, 45 + bobY);
+                    ctx.lineTo(-22, 45 + bobY);
+                    ctx.fill();
+
+                    // Ninja Cowl Head
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.beginPath();
+                    ctx.arc(0, -45 + bobY, 21, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Mask Slit & Glowing Eyes (Flashes Red on Hit!)
+                    ctx.fillStyle = '#0f172a';
+                    ctx.fillRect(2, -50 + bobY, 16, 8);
+                    ctx.fillStyle = isHitState ? '#ef4444' : '#22c55e';
+                    ctx.fillRect(6, -48 + bobY, 10, 4);
+
+                    // Arm Wraps / Ninja Fists
+                    ctx.fillStyle = '#8b5cf6';
+                    ctx.beginPath();
+                    ctx.arc(-15, -10 + bobY, 11, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(20 + punchOffsetX, -15 + bobY, 13, 0, Math.PI * 2);
+                    ctx.fill();
+
+                } else {
+                    // Cyber Bot (Mecha Armor, Core Reactor, Visor)
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(-16, 25 + bobY, 13, 35);
+                    ctx.fillRect(4, 25 + bobY, 13, 35);
+
+                    // Metallic Chest Armor (Flashes Red/Yellow warning on Hit)
+                    ctx.fillStyle = isHitState && hitProgress < 0.25 ? '#ef4444' : '#64748b';
+                    ctx.beginPath();
+                    ctx.roundRect(-22, -26 + bobY, 44, 52, 6);
+                    ctx.fill();
+                    ctx.strokeStyle = isHitState ? '#ff0055' : '#06b6d4';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+
+                    // Power Core Reactor
+                    ctx.fillStyle = isHitState ? '#ff0055' : '#06b6d4';
+                    ctx.beginPath();
+                    ctx.arc(0, -5 + bobY, 10, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    // Mecha Helmet & Neon Visor
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(-20, -66 + bobY, 40, 24);
+                    ctx.strokeStyle = '#06b6d4';
+                    ctx.strokeRect(-20, -66 + bobY, 40, 24);
+
+                    ctx.fillStyle = isHitState ? '#ff0055' : '#ffe600';
+                    ctx.fillRect(-14, -58 + bobY, 30, 6);
+
+                    // Mecha Fists
+                    ctx.fillStyle = '#06b6d4';
+                    ctx.beginPath();
+                    ctx.arc(-16, -8 + bobY, 13, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(22 + punchOffsetX, -14 + bobY, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.stroke();
+                }
+
+                // Render Dizzy/Hit Stars Spinning above head when damaged
+                if (isHitState) {
+                    const starAngle = Date.now() * 0.01;
+                    ctx.fillStyle = '#ffe600';
+                    for (let s = 0; s < 3; s++) {
+                        const sa = starAngle + (s * Math.PI * 2 / 3);
+                        const sx = Math.cos(sa) * 26;
+                        const sy = -75 + bobY + Math.sin(sa) * 8;
+                        ctx.beginPath();
+                        ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+
+                ctx.restore();
+            },
+
+            loop() {
+                const w = this.canvas.width;
+                const h = this.canvas.height;
+                const ctx = this.ctx;
+
+                ctx.clearRect(0, 0, w, h);
+
+                // Stage Grid / Platform Background
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(0, 0, w, h);
+
+                // Floor grid line
+                ctx.strokeStyle = '#1e293b';
+                ctx.lineWidth = 2;
+                const floorY = h * 0.75;
+                ctx.beginPath();
+                ctx.moveTo(0, floorY);
+                ctx.lineTo(w, floorY);
+                ctx.stroke();
+
+                // Neon stage lights
+                ctx.strokeStyle = '#00f0ff33';
+                ctx.beginPath();
+                ctx.moveTo(w * 0.2, 0); ctx.lineTo(w * 0.35, floorY);
+                ctx.moveTo(w * 0.8, 0); ctx.lineTo(w * 0.65, floorY);
+                ctx.stroke();
+
+                // Draw Fighters
+                const p1Char = CHARACTERS[Game.p1CharIdx || 0];
+                const p2Char = CHARACTERS[Game.p2CharIdx || 1];
+
+                this.drawFighter(w * 0.3, floorY - 60, p1Char, true, this.p1State);
+                this.drawFighter(w * 0.7, floorY - 60, p2Char, false, this.p2State);
+
+                // Render Impact Shockwaves
+                for (let i = this.effects.length - 1; i >= 0; i--) {
+                    const fx = this.effects[i];
+                    fx.radius += 3.5;
+                    fx.life -= 0.05;
+                    if (fx.life <= 0 || fx.radius >= fx.maxRadius) {
+                        this.effects.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(fx.x, fx.y, fx.radius, 0, Math.PI * 2);
+                    ctx.strokeStyle = fx.color;
+                    ctx.lineWidth = fx.lineWidth * fx.life;
+                    ctx.globalAlpha = fx.life;
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Render Hit Spark Particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life -= 0.04;
+                    if (p.life <= 0) {
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+                    ctx.fillStyle = p.color;
+                    ctx.globalAlpha = p.life;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.globalAlpha = 1.0;
+                }
+
+                // Render Floating Damage Text Pops
+                for (let i = this.damagePops.length - 1; i >= 0; i--) {
+                    const pop = this.damagePops[i];
+                    pop.y += pop.vy;
+                    pop.life -= 0.025;
+                    if (pop.life <= 0) {
+                        this.damagePops.splice(i, 1);
+                        continue;
+                    }
+                    ctx.save();
+                    ctx.globalAlpha = pop.life;
+                    ctx.font = `900 ${pop.isUltimate ? '28px' : '22px'} Orbitron, sans-serif`;
+                    ctx.fillStyle = pop.isUltimate ? '#ffe600' : '#ff0055';
+                    ctx.shadowColor = '#000000';
+                    ctx.shadowBlur = 8;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(pop.text, pop.x, pop.y);
+                    ctx.restore();
+                }
+
+                this.animId = requestAnimationFrame(() => this.loop());
+            }
+        };
+
+        const Game = {
+            state: 'START',
+            p1CharIdx: 0,
+            p2CharIdx: 1,
+            p1HP: 100,
+            p2HP: 100,
+            p1Ult: 0,
+            p2Ult: 0,
+            p1Combo: 0,
+            p2Combo: 0,
+            currentPlayer: 1,
+            currentQuestion: null,
+            timer: 25,
+            timerInterval: null,
+            usedQuestionIds: new Set(),
+            stats: {
+                p1Correct: 0, p2Correct: 0,
+                p1Wrong: 0, p2Wrong: 0,
+                p1MaxCombo: 0, p2MaxCombo: 0,
+                p1Damage: 0, p2Damage: 0,
+                p1Ults: 0, p2Ults: 0,
+                zeroCorrect: 0, firstCorrect: 0, secondCorrect: 0
+            },
+
+            init() {
+                SoundFX.init();
+                CanvasEngine.init();
+                this.updateCharPreviews();
+            },
+
+            goToStartMenu() {
+                SoundFX.playClick();
+                this.hideAllScreens();
+                document.getElementById('screen-start').classList.remove('hidden');
+                this.state = 'START';
+            },
+
+            goToCharSelect() {
+                SoundFX.playClick();
+                this.hideAllScreens();
+                document.getElementById('screen-charselect').classList.remove('hidden');
+                this.state = 'CHARSELECT';
+                this.updateCharPreviews();
+            },
+
+            hideAllScreens() {
+                ['screen-start', 'screen-charselect', 'screen-victory', 'modal-pause', 'modal-tips', 'modal-howtoplay', 'modal-credits', 'modal-speaking'].forEach(id => {
+                    document.getElementById(id).classList.add('hidden');
+                });
+            },
+
+            selectCharacter(player, index) {
+                SoundFX.playClick();
+                if (player === 1) this.p1CharIdx = index;
+                else this.p2CharIdx = index;
+                this.updateCharPreviews();
+            },
+
+            updateCharPreviews() {
+                const c1 = CHARACTERS[this.p1CharIdx];
+                const c2 = CHARACTERS[this.p2CharIdx];
+                document.getElementById('p1-char-name').innerText = c1.name;
+                document.getElementById('p1-char-name').style.color = c1.color;
+                document.getElementById('p1-char-preview').innerHTML = `<div class="text-6xl animate-bounce">${c1.icon}</div>`;
+
+                document.getElementById('p2-char-name').innerText = c2.name;
+                document.getElementById('p2-char-name').style.color = c2.color;
+                document.getElementById('p2-char-preview').innerHTML = `<div class="text-6xl animate-bounce">${c2.icon}</div>`;
+            },
+
+            startBattle() {
+                SoundFX.playClick();
+                this.hideAllScreens();
+                this.p1HP = 100; this.p2HP = 100;
+                this.p1Ult = 0; this.p2Ult = 0;
+                this.p1Combo = 0; this.p2Combo = 0;
+                this.currentPlayer = 1;
+                this.usedQuestionIds.clear();
+                this.resetStats();
+                this.updateHUD();
+
+                document.getElementById('hud-p1-name').innerText = CHARACTERS[this.p1CharIdx].name;
+                document.getElementById('hud-p2-name').innerText = CHARACTERS[this.p2CharIdx].name;
+
+                this.state = 'PLAYING';
+                this.loadNextTurn();
+            },
+
+            resetStats() {
+                this.stats = {
+                    p1Correct: 0, p2Correct: 0,
+                    p1Wrong: 0, p2Wrong: 0,
+                    p1MaxCombo: 0, p2MaxCombo: 0,
+                    p1Damage: 0, p2Damage: 0,
+                    p1Ults: 0, p2Ults: 0,
+                    zeroCorrect: 0, firstCorrect: 0, secondCorrect: 0
+                };
+            },
+
+            loadNextTurn() {
+                if (this.p1HP <= 0 || this.p2HP <= 0) {
+                    this.endBattle();
+                    return;
+                }
+
+                // Turn Banner Update
+                const pName = this.currentPlayer === 1 ? CHARACTERS[this.p1CharIdx].name : CHARACTERS[this.p2CharIdx].name;
+                const turnBanner = document.getElementById('hud-turn-banner');
+                turnBanner.innerText = `${pName}'S TURN TO ATTACK!`;
+                turnBanner.className = `w-full text-center py-1 font-orbitron font-bold text-sm border-y ${this.currentPlayer === 1 ? 'bg-cyan-950/80 border-cyan-500/40 text-cyan-300' : 'bg-pink-950/80 border-pink-500/40 text-pink-300'}`;
+
+                // Select Random Unused Question
+                if (this.usedQuestionIds.size >= QUESTIONS_DATA.length) {
+                    this.usedQuestionIds.clear(); // Reset pool if exhausted
+                }
+
+                let available = QUESTIONS_DATA.filter(q => !this.usedQuestionIds.has(q.id));
+                this.currentQuestion = available[Math.floor(Math.random() * available.length)];
+                this.usedQuestionIds.add(this.currentQuestion.id);
+
+                this.renderQuestionCard();
+                this.startTimer();
+            },
+
+            renderQuestionCard() {
+                const q = this.currentQuestion;
+                document.getElementById('q-text').innerText = q.question;
+
+                // Grammar Badge UI
+                const badgeDot = document.getElementById('q-badge-dot');
+                const badgeText = document.getElementById('q-badge-text');
+                const badgeEl = document.getElementById('q-badge');
+
+                if (q.type === 'zero') {
+                    badgeDot.innerText = '🟢';
+                    badgeText.innerText = 'ZERO CONDITIONAL';
+                    badgeEl.className = 'px-3 py-1 rounded-full font-orbitron font-bold text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500 flex items-center gap-2';
+                } else if (q.type === 'first') {
+                    badgeDot.innerText = '🟡';
+                    badgeText.innerText = 'FIRST CONDITIONAL';
+                    badgeEl.className = 'px-3 py-1 rounded-full font-orbitron font-bold text-xs bg-amber-500/20 text-amber-300 border border-amber-500 flex items-center gap-2';
+                } else {
+                    badgeDot.innerText = '🔴';
+                    badgeText.innerText = 'SECOND CONDITIONAL';
+                    badgeEl.className = 'px-3 py-1 rounded-full font-orbitron font-bold text-xs bg-rose-500/20 text-rose-300 border border-rose-500 flex items-center gap-2';
+                }
+
+                // Shuffle Choices
+                const shuffledChoices = [...q.choices].sort(() => Math.random() - 0.5);
+                const buttons = document.querySelectorAll('.choice-btn');
+                buttons.forEach((btn, idx) => {
+                    btn.disabled = false;
+                    btn.querySelector('.choice-text').innerText = shuffledChoices[idx];
+                });
+            },
+
+            startTimer() {
+                clearInterval(this.timerInterval);
+                this.timer = 25;
+                document.getElementById('hud-timer').innerText = this.timer;
+
+                this.timerInterval = setInterval(() => {
+                    if (this.state !== 'PLAYING') return;
+                    this.timer--;
+                    document.getElementById('hud-timer').innerText = this.timer;
+                    if (this.timer <= 0) {
+                        clearInterval(this.timerInterval);
+                        this.handleTimeout();
+                    }
+                }, 1000);
+            },
+
+            submitAnswer(choiceIdx) {
+                if (this.state !== 'PLAYING') return;
+                clearInterval(this.timerInterval);
+
+                // Disable buttons
+                document.querySelectorAll('.choice-btn').forEach(btn => btn.disabled = true);
+
+                const buttons = document.querySelectorAll('.choice-btn');
+                const selectedText = buttons[choiceIdx].querySelector('.choice-text').innerText;
+                const isCorrect = selectedText === this.currentQuestion.answer;
+
+                if (isCorrect) {
+                    this.handleCorrectAnswer();
+                } else {
+                    this.handleWrongAnswer();
+                }
+            },
+
+            handleCorrectAnswer() {
+                SoundFX.playHit();
+                const q = this.currentQuestion;
+
+                // Track Stats
+                if (this.currentPlayer === 1) {
+                    this.stats.p1Correct++;
+                    this.p1Combo++;
+                    this.stats.p1MaxCombo = Math.max(this.stats.p1MaxCombo, this.p1Combo);
+                } else {
+                    this.stats.p2Correct++;
+                    this.p2Combo++;
+                    this.stats.p2MaxCombo = Math.max(this.stats.p2MaxCombo, this.p2Combo);
+                }
+
+                if (q.type === 'zero') this.stats.zeroCorrect++;
+                else if (q.type === 'first') this.stats.firstCorrect++;
+                else if (q.type === 'second') this.stats.secondCorrect++;
+
+                // Damage & Ultimate Check
+                let isUlt = false;
+                let damage = 10;
+                const currentCombo = this.currentPlayer === 1 ? this.p1Combo : this.p2Combo;
+
+                if (currentCombo === 2) damage = 12;
+                else if (currentCombo === 3) damage = 15;
+                else if (currentCombo >= 4) damage = 18;
+
+                const currentUlt = this.currentPlayer === 1 ? this.p1Ult : this.p2Ult;
+                if (currentUlt >= 100) {
+                    isUlt = true;
+                    damage = 25;
+                    SoundFX.playUltimate();
+                    if (this.currentPlayer === 1) { this.p1Ult = 0; this.stats.p1Ults++; }
+                    else { this.p2Ult = 0; this.stats.p2Ults++; }
+                } else {
+                    if (this.currentPlayer === 1) this.p1Ult = Math.min(100, this.p1Ult + 20);
+                    else this.p2Ult = Math.min(100, this.p2Ult + 20);
+                }
+
+                // Apply Damage
+                if (this.currentPlayer === 1) {
+                    this.p2HP = Math.max(0, this.p2HP - damage);
+                    this.stats.p1Damage += damage;
+                } else {
+                    this.p1HP = Math.max(0, this.p1HP - damage);
+                    this.stats.p2Damage += damage;
+                }
+
+                this.updateHUD();
+                CanvasEngine.triggerAttack(this.currentPlayer, isUlt);
+
+                // Screen Shake
+                const container = document.getElementById('game-container');
+                container.classList.add('screen-shake');
+                setTimeout(() => container.classList.remove('screen-shake'), 350);
+
+                // Feedback Banner
+                this.showCombatBanner(isUlt ? 'ULTIMATE ATTACK!' : 'CORRECT HIT!', q);
+
+                // Turn Transition
+                setTimeout(() => {
+                    this.hideCombatBanner();
+                    this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                    this.loadNextTurn();
+                }, 1800);
+            },
+
+            handleWrongAnswer() {
+                SoundFX.playWrong();
+                const q = this.currentQuestion;
+
+                if (this.currentPlayer === 1) {
+                    this.stats.p1Wrong++;
+                    this.p1Combo = 0;
+                } else {
+                    this.stats.p2Wrong++;
+                    this.p2Combo = 0;
+                }
+
+                this.updateHUD();
+                CanvasEngine.triggerMiss(this.currentPlayer);
+
+                this.showCombatBanner(`WRONG! (Correct: ${q.answer})`, q, true);
+
+                setTimeout(() => {
+                    this.hideCombatBanner();
+                    this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                    this.loadNextTurn();
+                }, 2000);
+            },
+
+            handleTimeout() {
+                SoundFX.playWrong();
+                const q = this.currentQuestion;
+
+                if (this.currentPlayer === 1) this.p1Combo = 0;
+                else this.p2Combo = 0;
+
+                this.updateHUD();
+                CanvasEngine.triggerMiss(this.currentPlayer);
+
+                this.showCombatBanner('TIME UP!', q, true);
+
+                setTimeout(() => {
+                    this.hideCombatBanner();
+                    this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
+                    this.loadNextTurn();
+                }, 2000);
+            },
+
+            updateHUD() {
+                // HP Bars
+                document.getElementById('hud-p1-hp-bar').style.width = `${this.p1HP}%`;
+                document.getElementById('hud-p2-hp-bar').style.width = `${this.p2HP}%`;
+                document.getElementById('hud-p1-hp-text').innerText = `${this.p1HP} HP`;
+                document.getElementById('hud-p2-hp-text').innerText = `${this.p2HP} HP`;
+
+                // Ult Bars
+                document.getElementById('hud-p1-ult-bar').style.width = `${this.p1Ult}%`;
+                document.getElementById('hud-p2-ult-bar').style.width = `${this.p2Ult}%`;
+
+                // Combo Counters
+                const p1ComboEl = document.getElementById('hud-p1-combo');
+                if (this.p1Combo > 0) {
+                    p1ComboEl.classList.remove('hidden');
+                    p1ComboEl.innerText = this.p1Combo >= 4 ? 'SUPER COMBO!' : `${this.p1Combo} HIT COMBO!`;
+                } else p1ComboEl.classList.add('hidden');
+
+                const p2ComboEl = document.getElementById('hud-p2-combo');
+                if (this.p2Combo > 0) {
+                    p2ComboEl.classList.remove('hidden');
+                    p2ComboEl.innerText = this.p2Combo >= 4 ? 'SUPER COMBO!' : `${this.p2Combo} HIT COMBO!`;
+                } else p2ComboEl.classList.add('hidden');
+            },
+
+            showCombatBanner(title, question, isWrong = false) {
+                const banner = document.getElementById('combat-banner');
+                const titleEl = document.getElementById('combat-banner-title');
+                const badgeEl = document.getElementById('combat-banner-badge');
+                const detailEl = document.getElementById('combat-banner-detail');
+
+                titleEl.innerText = title;
+                titleEl.className = isWrong ? 'font-orbitron font-black text-2xl md:text-3xl text-red-500 tracking-wider' : 'font-orbitron font-black text-2xl md:text-3xl text-yellow-300 tracking-wider';
+
+                let ruleText = '';
+                if (question.type === 'zero') {
+                    badgeEl.innerText = '🟢 ZERO CONDITIONAL';
+                    badgeEl.className = 'inline-block mt-1 px-3 py-0.5 rounded text-xs font-bold font-orbitron bg-emerald-500 text-black';
+                    ruleText = 'If + present simple, present simple';
+                } else if (question.type === 'first') {
+                    badgeEl.innerText = '🟡 FIRST CONDITIONAL';
+                    badgeEl.className = 'inline-block mt-1 px-3 py-0.5 rounded text-xs font-bold font-orbitron bg-amber-500 text-black';
+                    ruleText = 'If + present simple, will + verb';
+                } else {
+                    badgeEl.innerText = '🔴 SECOND CONDITIONAL';
+                    badgeEl.className = 'inline-block mt-1 px-3 py-0.5 rounded text-xs font-bold font-orbitron bg-rose-500 text-black';
+                    ruleText = 'If + past simple, would + verb';
+                }
+
+                detailEl.innerText = ruleText;
+                banner.classList.remove('hidden');
+            },
+
+            hideCombatBanner() {
+                document.getElementById('combat-banner').classList.add('hidden');
+            },
+
+            togglePause() {
+                SoundFX.playClick();
+                const pauseModal = document.getElementById('modal-pause');
+                if (pauseModal.classList.contains('hidden')) {
+                    pauseModal.classList.remove('hidden');
+                    this.state = 'PAUSED';
+                } else {
+                    pauseModal.classList.add('hidden');
+                    this.state = 'PLAYING';
+                }
+            },
+
+            restartBattle() {
+                this.startBattle();
+            },
+
+            showModal(id) {
+                SoundFX.playClick();
+                document.getElementById(id).classList.remove('hidden');
+            },
+
+            hideModal(id) {
+                SoundFX.playClick();
+                document.getElementById(id).classList.add('hidden');
+            },
+
+            triggerSpeakingBonus() {
+                if (!this.currentQuestion) return;
+                const q = this.currentQuestion;
+                let prompt = "";
+                let expected = "";
+
+                if (q.type === 'zero') {
+                    prompt = '"What happens if you don\'t sleep enough?"';
+                    expected = '"If I don\'t sleep enough, I feel tired."';
+                } else if (q.type === 'first') {
+                    prompt = '"What will you do if it rains tomorrow?"';
+                    expected = '"If it rains tomorrow, I will stay indoors."';
+                } else {
+                    prompt = '"What would you do if you were rich?"';
+                    expected = '"If I were rich, I would buy a big house."';
+                }
+
+                document.getElementById('speaking-prompt').innerText = prompt;
+                document.getElementById('speaking-expected').innerText = expected;
+                this.showModal('modal-speaking');
+            },
+
+            resolveSpeakingBonus(awarded) {
+                SoundFX.playClick();
+                if (awarded) {
+                    if (this.currentPlayer === 1) this.p1Ult = Math.min(100, this.p1Ult + 25);
+                    else this.p2Ult = Math.min(100, this.p2Ult + 25);
+                    this.updateHUD();
+                }
+                this.hideModal('modal-speaking');
+            },
+
+            endBattle() {
+                clearInterval(this.timerInterval);
+                SoundFX.playKO();
+
+                const winner = this.p1HP > 0 ? 1 : 2;
+                const winnerName = winner === 1 ? CHARACTERS[this.p1CharIdx].name : CHARACTERS[this.p2CharIdx].name;
+
+                document.getElementById('winner-name').innerText = `${winnerName} WINS!`;
+                document.getElementById('winner-name').style.color = winner === 1 ? '#00f0ff' : '#ff007f';
+
+                // Check Perfect Round
+                const isPerfect = (winner === 1 && this.stats.p1Wrong === 0) || (winner === 2 && this.stats.p2Wrong === 0);
+                if (isPerfect) document.getElementById('perfect-banner').classList.remove('hidden');
+                else document.getElementById('perfect-banner').classList.add('hidden');
+
+                // Populate Stats Table
+                document.getElementById('stat-p1-correct').innerText = this.stats.p1Correct;
+                document.getElementById('stat-p2-correct').innerText = this.stats.p2Correct;
+                document.getElementById('stat-p1-wrong').innerText = this.stats.p1Wrong;
+                document.getElementById('stat-p2-wrong').innerText = this.stats.p2Wrong;
+                document.getElementById('stat-p1-combo').innerText = this.stats.p1MaxCombo;
+                document.getElementById('stat-p2-combo').innerText = this.stats.p2MaxCombo;
+                document.getElementById('stat-p1-damage').innerText = `${this.stats.p1Damage} HP`;
+                document.getElementById('stat-p2-damage').innerText = `${this.stats.p2Damage} HP`;
+                document.getElementById('stat-p1-ult').innerText = this.stats.p1Ults;
+                document.getElementById('stat-p2-ult').innerText = this.stats.p2Ults;
+
+                document.getElementById('stat-zero-score').innerText = `${this.stats.zeroCorrect} / 8`;
+                document.getElementById('stat-first-score').innerText = `${this.stats.firstCorrect} / 9`;
+                document.getElementById('stat-second-score').innerText = `${this.stats.secondCorrect} / 8`;
+
+                // Dynamic Encouragement Message
+                const totalCorrect = this.stats.p1Correct + this.stats.p2Correct;
+                const msgEl = document.getElementById('final-message');
+                if (totalCorrect >= 15) msgEl.innerText = "EXCELLENT GRAMMAR SKILLS!";
+                else if (totalCorrect >= 8) msgEl.innerText = "GREAT EFFORT! KEEP FIGHTING!";
+                else msgEl.innerText = "KEEP PRACTISING YOUR CONDITIONALS!";
+
+                document.getElementById('screen-victory').classList.remove('hidden');
+                this.state = 'VICTORY';
+                this.launchVictoryConfetti();
+            },
+
+            launchVictoryConfetti() {
+                const c = document.getElementById('victory-confetti');
+                if (!c) return;
+                const ctx = c.getContext('2d');
+                c.width = c.parentElement.clientWidth;
+                c.height = c.parentElement.clientHeight;
+
+                const confetti = [];
+                for (let i = 0; i < 60; i++) {
+                    confetti.push({
+                        x: Math.random() * c.width,
+                        y: Math.random() * c.height - c.height,
+                        vx: Math.random() * 4 - 2,
+                        vy: Math.random() * 3 + 2,
+                        size: Math.random() * 6 + 4,
+                        color: ['#00f0ff', '#ff007f', '#ffe600', '#39ff14'][Math.floor(Math.random() * 4)]
+                    });
+                }
+
+                const drawConfetti = () => {
+                    if (this.state !== 'VICTORY') return;
+                    ctx.clearRect(0, 0, c.width, c.height);
+                    confetti.forEach(p => {
+                        p.x += p.vx; p.y += p.vy;
+                        if (p.y > c.height) p.y = -10;
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(p.x, p.y, p.size, p.size);
+                    });
+                    requestAnimationFrame(drawConfetti);
+                };
+                drawConfetti();
+            }
+        };
+
+        window.onload = () => {
+            Game.init();
+        };
+    </script>
+</body>
+</html>
